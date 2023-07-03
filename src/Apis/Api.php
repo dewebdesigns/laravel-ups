@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Rawilk\Ups\Apis;
 
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Rawilk\Ups\Requests\Request;
 use Rawilk\Ups\Responses\Response;
@@ -25,6 +26,14 @@ abstract class Api
      */
     protected const ENDPOINT = '/';
 
+    protected bool $oauth;
+
+    protected string $merchantID;
+
+    protected string $clientID;
+
+    protected string $clientSecret;
+
     protected string $accessKey;
 
     protected string $userId;
@@ -43,10 +52,18 @@ abstract class Api
     {
         $config = Config::get('ups', []);
 
-        $this->accessKey = $config['access_key'];
-        $this->userId = $config['user_id'];
-        $this->password = $config['password'];
-        $this->sandbox = $config['sandbox'];
+        $this->oauth = $config['oauth'] ?? false;
+
+        if($this->oauth) {
+            $this->clientID = $config['client_id'];
+            $this->clientSecret = $config['client_secret'];
+            $this->merchantID = $config['merchant_id'];
+        } else {
+            $this->accessKey = $config['access_key'];
+            $this->userId = $config['user_id'];
+            $this->password = $config['password'];
+            $this->sandbox = $config['sandbox'];
+        }
     }
 
     abstract protected function generateRequestXml();
@@ -164,5 +181,29 @@ abstract class Api
         }
 
         return $request->send();
+    }
+
+    protected function generateToken(): \Illuminate\Http\Client\Response|false {
+
+        if(! $this->oauth) return false;
+
+        try {
+            $request = Http::asForm()
+                ->withHeaders([
+                    'x-merchant-id' => $this->merchantID,
+                ])
+                ->withBasicAuth($this->clientID, $this->clientSecret)
+                ->post($this->baseUri() . '/security/v1/oauth/token', [
+                    'grant_type' => 'client_credentials'
+                ]);
+
+            if($request->ok()){
+                return $request->json();
+            }
+
+        } catch (\Throwable $e) {
+        }
+
+        return false;
     }
 }

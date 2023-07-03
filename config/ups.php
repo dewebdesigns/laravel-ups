@@ -10,6 +10,11 @@ return [
     | the UPS api.
     |
     */
+    'oauth' => env('UPS_OAUTH', false),
+    'merchant_id' => env('UPS_MERCHANT_ID'),
+    'client_id' => env('UPS_CLIENT_ID'),
+    'client_secret' => env('UPS_CLIENT_SECRET'),
+
     'access_key' => env('UPS_ACCESS_KEY'),
     'user_id' => env('UPS_USER_ID'),
     'password' => env('UPS_PASSWORD'),
